@@ -10,6 +10,8 @@ The classes include airplane, car, cat, dog, flower, fruit, motorbike and person
 
 The dataset can be downloaded on Kaggle [natural images](https://www.kaggle.com/prasunroy/natural-images).
 
+The exercise is written in R code. 
+
 # Approach
 ## Part 1: Data Preparation
 
