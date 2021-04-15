@@ -1,0 +1,433 @@
+---
+title: "CNN: Natural Images (99% Accuracy)"
+author: "Peer Woyczechowski"
+output:
+  html_document:
+    df_print: paged
+    code_download: true
+    code_folding: "show"
+  html_notebook:
+    theme: cerulean
+    highlight: textmate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE,warning = FALSE)
+
+```
+
+
+# Data Description
+The dataset contains 6,899 images from 8 distinct classes compiled from various sources (see Acknowledgements when clicking below link). The classes include airplane, car, cat, dog, flower, fruit, motorbike and person.
+
+The dataset can be downloaded on Kaggle [natural images](https://www.kaggle.com/prasunroy/natural-images). 
+
+My goal is to develop a CNN model to accurately classify new images, using transfer learning.
+
+Let's see how well we can do!
+
+## Package Requirements
+```{r, echo=T}
+reticulate::use_python("/Users/peerwoyzcechowski/opt/anaconda3/envs/p37env/bin/python", required = TRUE)
+reticulate::use_condaenv("p37env")
+library("keras")
+library("tensorflow")
+library(stringr)
+```
+
+# Part 1: Data Preparation
+
+Downloading and organizing the images into train, validation, and test directories.
+```{r, results=F}
+original_dataset_dir <- "/Users/peerwoyzcechowski/Desktop/Uni/BI/2.\ semester/Machine\ Learning\ 2/4\ -\ Deep\ Learning/Lecture4\ \ -\ Computer\ Vision/NaturalImgaesExercise/natural_images"
+
+base_dir <- "/Users/peerwoyzcechowski/Desktop/Uni/BI/2.\ semester/Machine\ Learning\ 2/4\ -\ Deep\ Learning/Lecture4\ \ -\ Computer\ Vision/NaturalImgaesExercise/Datasets"
+dir.create(base_dir)
+
+train_dir <- file.path(base_dir, "train")
+dir.create(train_dir)
+validation_dir <- file.path(base_dir, "validation")
+dir.create(validation_dir)
+test_dir <- file.path(base_dir, "test")
+dir.create(test_dir)
+
+# create a directory for each class in train, valid, and test
+train_person_dir <- file.path(train_dir, "person")
+dir.create(train_person_dir)
+train_motorbike_dir <- file.path(train_dir, "motorbike")
+dir.create(train_motorbike_dir)
+train_fruit_dir <- file.path(train_dir, "fruit")
+dir.create(train_fruit_dir)
+train_flower_dir <- file.path(train_dir, "flower")
+dir.create(train_flower_dir)
+train_dog_dir <- file.path(train_dir, "dog")
+dir.create(train_dog_dir)
+train_cat_dir <- file.path(train_dir, "cat")
+dir.create(train_cat_dir)
+train_airplane_dir <- file.path(train_dir, "airplane")
+dir.create(train_airplane_dir)
+train_car_dir <- file.path(train_dir, "car")
+dir.create(train_car_dir)
+
+validatation_person_dir <- file.path(validation_dir, "person")
+dir.create(validatation_person_dir)
+validation_motorbike_dir <- file.path(validation_dir, "motorbike")
+dir.create(validation_motorbike_dir)
+validation_fruit_dir <- file.path(validation_dir, "fruit")
+dir.create(validation_fruit_dir)
+validation_flower_dir <- file.path(validation_dir, "flower")
+dir.create(validation_flower_dir)
+validation_dog_dir <- file.path(validation_dir, "dog")
+dir.create(validation_dog_dir)
+validation_cat_dir <- file.path(validation_dir, "cat")
+dir.create(validation_cat_dir)
+validation_airplane_dir <- file.path(validation_dir, "airplane")
+dir.create(validation_airplane_dir)
+validation_car_dir <- file.path(validation_dir, "car")
+dir.create(validation_car_dir)
+
+test_person_dir <- file.path(test_dir, "person")
+dir.create(test_person_dir)
+test_motorbike_dir <- file.path(test_dir, "motorbike")
+dir.create(test_motorbike_dir)
+test_fruit_dir <- file.path(test_dir, "fruit")
+dir.create(test_fruit_dir)
+test_flower_dir <- file.path(test_dir, "flower")
+dir.create(test_flower_dir)
+test_dog_dir <- file.path(test_dir, "dog")
+dir.create(test_dog_dir)
+test_cat_dir <- file.path(test_dir, "cat")
+dir.create(test_cat_dir)
+test_airplane_dir <- file.path(test_dir, "airplane")
+dir.create(test_airplane_dir)
+test_car_dir <- file.path(test_dir, "car")
+dir.create(test_car_dir)
+
+
+# get the number of files in each subfolder
+files <-  list.files(original_dataset_dir, pattern = ".", all.files = FALSE, recursive = TRUE, full.names = FALSE)
+dir_list <- split(files, dirname(files))
+files_in_folder <- sapply(dir_list, length)
+
+## split data and paste into train 
+# we do 60,20,20 split 
+
+# split airplane data
+train_split <- round(files_in_folder[["airplane"]]*0.6)
+fnames <- paste0("airplane/airplane_",str_pad(0:train_split,4,pad=0), ".jpg") # file names start at 0000.jpg #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(train_airplane_dir)) 
+
+validation_split <- round(files_in_folder[["airplane"]]*0.8)
+fnames <- paste0("airplane/airplane_",str_pad((train_split+1):validation_split,4,pad=0), ".jpg") #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(validation_airplane_dir)) 
+
+test_split <- (files_in_folder[["airplane"]])-1 # file names start at 0000.jpg
+fnames <- paste0("airplane/airplane_",str_pad((validation_split+1):test_split,4,pad=0), ".jpg") #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(test_airplane_dir)) 
+
+
+# split person data
+train_split <- round(files_in_folder[["person"]]*0.6)
+fnames <- paste0("person/person_",str_pad(0:train_split,4,pad=0), ".jpg") # file names start at 0000.jpg #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(train_person_dir)) 
+
+validation_split <- round(files_in_folder[["person"]]*0.8)
+fnames <- paste0("person/person_",str_pad((train_split+1):(validation_split-7),4,pad=0), ".jpg") #need to add leading 0s to fit file names # -7 to fit the later batch number of 34
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(validatation_person_dir)) 
+
+test_split <- (files_in_folder[["person"]])-1 # file names start at 0000.jpg
+fnames <- paste0("person/person_",str_pad((validation_split+1):(test_split-4),4,pad=0), ".jpg") #need to add leading 0s to fit file names #-4 to fit the later batch number of 34
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(test_person_dir)) 
+
+#split car data 
+train_split <- round(files_in_folder[["car"]]*0.6)
+fnames <- paste0("car/car_",str_pad(0:train_split,4,pad=0), ".jpg") # file names start at 0000.jpg #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(train_car_dir)) 
+
+validation_split <- round(files_in_folder[["car"]]*0.8)
+fnames <- paste0("car/car_",str_pad((train_split+1):(validation_split-6),4,pad=0), ".jpg") #need to add leading 0s to fit file names # -6 to fit the later batch number of 34
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(validation_car_dir)) 
+
+test_split <- (files_in_folder[["car"]])-1 # file names start at 0000.jpg
+fnames <- paste0("car/car_",str_pad((validation_split+1):(test_split-4),4,pad=0), ".jpg") #need to add leading 0s to fit file names #-4 to fit the later batch number of 34
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(test_car_dir)) 
+
+#split cat data 
+train_split <- round(files_in_folder[["cat"]]*0.6)
+fnames <- paste0("cat/cat_",str_pad(0:train_split,4,pad=0), ".jpg") # file names start at 0000.jpg #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(train_cat_dir)) 
+
+validation_split <- round(files_in_folder[["cat"]]*0.8)
+fnames <- paste0("cat/cat_",str_pad((train_split+1):validation_split,4,pad=0), ".jpg") #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(validation_cat_dir)) 
+
+test_split <- (files_in_folder[["cat"]])-1 # file names start at 0000.jpg
+fnames <- paste0("cat/cat_",str_pad((validation_split+1):test_split,4,pad=0), ".jpg") #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(test_cat_dir)) 
+
+#split dog data 
+train_split <- round(files_in_folder[["dog"]]*0.6)
+fnames <- paste0("dog/dog_",str_pad(0:train_split,4,pad=0), ".jpg") # file names start at 0000.jpg #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(train_dog_dir)) 
+
+validation_split <- round(files_in_folder[["dog"]]*0.8)
+fnames <- paste0("dog/dog_",str_pad((train_split+1):validation_split,4,pad=0), ".jpg") #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(validation_dog_dir)) 
+
+test_split <- (files_in_folder[["dog"]])-1 # file names start at 0000.jpg
+fnames <- paste0("dog/dog_",str_pad((validation_split+1):test_split,4,pad=0), ".jpg") #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(test_dog_dir)) 
+
+#split flower data 
+train_split <- round(files_in_folder[["flower"]]*0.6)
+fnames <- paste0("flower/flower_",str_pad(0:train_split,4,pad=0), ".jpg") # file names start at 0000.jpg #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(train_flower_dir)) 
+
+validation_split <- round(files_in_folder[["flower"]]*0.8)
+fnames <- paste0("flower/flower_",str_pad((train_split+1):validation_split,4,pad=0), ".jpg") #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(validation_flower_dir)) 
+
+test_split <- (files_in_folder[["flower"]])-1 # file names start at 0000.jpg
+fnames <- paste0("flower/flower_",str_pad((validation_split+1):test_split,4,pad=0), ".jpg") #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(test_flower_dir)) 
+
+#split fruit data 
+train_split <- round(files_in_folder[["fruit"]]*0.6)
+fnames <- paste0("fruit/fruit_",str_pad(0:train_split,4,pad=0), ".jpg") # file names start at 0000.jpg #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(train_fruit_dir)) 
+
+validation_split <- round(files_in_folder[["fruit"]]*0.8)
+fnames <- paste0("fruit/fruit_",str_pad((train_split+1):(validation_split-6),4,pad=0), ".jpg") #need to add leading 0s to fit file names #-6 to fit the later batch number of 34
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(validation_fruit_dir)) 
+
+test_split <- (files_in_folder[["fruit"]])-1 # file names start at 0000.jpg
+fnames <- paste0("fruit/fruit_",str_pad((validation_split+1):(test_split-4),4,pad=0), ".jpg") #need to add leading 0s to fit file names #-4 to fit the later batch number of 34
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(test_fruit_dir)) 
+
+#split motorbike data 
+train_split <- round(files_in_folder[["motorbike"]]*0.6)
+fnames <- paste0("motorbike/motorbike_",str_pad(0:train_split,4,pad=0), ".jpg") # file names start at 0000.jpg #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(train_motorbike_dir)) 
+
+validation_split <- round(files_in_folder[["motorbike"]]*0.8)
+fnames <- paste0("motorbike/motorbike_",str_pad((train_split+1):validation_split,4,pad=0), ".jpg") #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(validation_motorbike_dir)) 
+
+test_split <- (files_in_folder[["motorbike"]])-1 # file names start at 0000.jpg
+fnames <- paste0("motorbike/motorbike_",str_pad((validation_split+1):test_split,4,pad=0), ".jpg") #need to add leading 0s to fit file names
+file.copy(file.path(original_dataset_dir, fnames), 
+          file.path(test_motorbike_dir)) 
+```
+
+
+Let's see how many images we have in the training, validation, and test set folder. 
+
+*Note*: I have adjusted the number of the validation and test sets slightly to fit with a multiplier of 34, which will be my batch_size for the model.
+```{r}
+# Get the number of files in each subfolder of the train 
+files <- list.files(train_dir, pattern = ".", all.files = TRUE, recursive = TRUE, full.names = FALSE) 
+length(files)
+split(files, dirname(files)) %>% sapply(length)
+
+# Get the number of files in each subfolder of the validation 
+files <- list.files(validation_dir, pattern = ".", all.files = TRUE, recursive = TRUE, full.names = FALSE) 
+length(files)
+split(files, dirname(files)) %>% sapply(length)
+
+# Get the number of files in each subfolder of the test 
+files <- list.files(test_dir, pattern = ".", all.files = TRUE, recursive = TRUE, full.names = FALSE) 
+length(files)
+split(files, dirname(files)) %>% sapply(length) 
+```
+
+
+
+# Part 2: Modeling using feature extraction
+
+I'm applying a pre-trained model, using use a *feature extraction* approach for transfer learning.
+I'm using the publicly available VGG16 model (trained on mostly animals and everyday objects) as a convolutional base.
+The representations learned by the VGG16 network are used to extract features from the the new dataset. I will then run these newly extracted features through a densely-connected classifier, which is build and trained from scratch.
+
+In one sentence:
+My model is trained based on convolutional base of the previously-trained VGG16 network and a densely-connected classifer that I will build from scratch. 
+
+*Note*:
+This solution is fast and cheap to run, because it only requires running the convolutional base once for every input image, and the convolutional base is by far the most expensive part of the pipeline. But for the same reason, this technique won't allow you to use data augmentation. However, let's first see how well we can do before going for an approach that allows data augmentation.
+
+
+Initiating the VGG16 model:
+```{r, warning=FALSE}
+conv_base <- application_vgg16(
+  weights = "imagenet", #weight checkpoint to initialize model from
+  include_top = FALSE, # not including the denely-connected classifer on top of the network, I will build my own 
+  input_shape = c(150, 150, 3) #input shape of the tensors that will be fed to the network
+)
+```
+
+
+
+## VGG16 Convolutional base + my densely connected classifier
+
+We'll start by running instances of the previously introduced `image_data_generator()` to extract images as arrays as well as their labels. We will extract features from these images by calling the `predict` method on the model.
+
+```{r, warning=F}
+base_dir <- file.path("/Users/peerwoyzcechowski/Desktop/Uni/BI/2.\ semester/Machine\ Learning\ 2/4\ -\ Deep\ Learning/Lecture4\ \ -\ Computer\ Vision/NaturalImgaesExercise/Datasets")
+train_dir <- file.path(base_dir, "train")
+validation_dir <- file.path(base_dir, "validation")
+test_dir <- file.path(base_dir, "test")
+
+datagen <- image_data_generator(rescale = 1/255)
+batch_size <- 34 #I adjusted the validation and test data set to fit the batch_size
+
+extract_features <- function(directory, sample_count) {
+  
+  features <- array(0, dim = c(sample_count, 4, 4, 512))  
+  labels <- array(0, dim = c(sample_count))
+  
+  generator <- flow_images_from_directory(
+    directory = directory,
+    generator = datagen,
+    target_size = c(150, 150),
+    batch_size = batch_size,
+    class_mode = "categorical"
+  )
+  
+  i <- 0
+  while(TRUE) {
+    batch <- generator_next(generator)
+    inputs_batch <- batch[[1]]
+    labels_batch <- batch[[2]]
+    features_batch <- conv_base %>% predict(inputs_batch)
+    
+    index_range <- ((i * batch_size)+1):((i + 1) * batch_size)
+    features[index_range,,,] <- features_batch
+    labels[index_range] <- labels_batch
+    
+    i <- i + 1
+    if (i * batch_size >= sample_count)
+      # Note that because generators yield data indefinitely in a loop, 
+      # you must break after every image has been seen once.
+      break
+  }
+  
+  list(
+    features = features, 
+    labels = labels
+  )
+}
+
+train <- extract_features(train_dir, 4148)
+validation <- extract_features(validation_dir, 1360)
+test <- extract_features(test_dir, 1360)
+```
+
+The extracted features are currently of shape `(samples, 4, 4, 512)`. 
+We will feed them to a densely-connected classifier, so first we must flatten them to `(samples, 8192)`:
+
+```{r}
+reshape_features <- function(features) {
+  array_reshape(features, dim = c(nrow(features), 4 * 4 * 512))
+}
+train$features <- reshape_features(train$features)
+validation$features <- reshape_features(validation$features)
+test$features <- reshape_features(test$features)
+```
+
+
+Now, let's define a model and train it on the data and labels, that were just recorded. 
+
+My densely-connected classifer has two hidden layers with 512 and 256 hidden units. This choice was arbitrary. 
+I added a dropout to impose regularization.
+
+Defining the model:
+```{r, echo=TRUE}
+#we use softmax as the activation function since we have a multi-class classification problem at hand
+model <- keras_model_sequential() %>% 
+  layer_dense(units = 512, activation = "relu", input_shape = 4 * 4 * 512) %>% 
+  layer_dense(units = 256, activation = "relu") %>% 
+  layer_dropout(rate = 0.5) %>% 
+  layer_dense(units = 8, activation = "softmax") 
+
+summary(model)
+```
+
+
+Compiling the model:
+```{r, echo=TRUE}
+model %>% compile(
+  optimizer = optimizer_rmsprop(lr = 2e-5),
+  loss = "sparse_categorical_crossentropy",
+  metrics = c("accuracy") 
+)
+```
+
+
+Fitting the model:
+*Note*: To avoid overfitting, I'm adding callback_early_stopping with a patience of 10 (i.e. after 10 epochs with no improvement after which training will be stopped) and callback_reduce_lr_on_plateau with patient 2 (i.e. after 2 epochs with no improvement, the learning rate is reduced)
+```{r, echo=TRUE}
+history <- model %>% fit(
+  train$features, train$labels,
+  epochs = 30,
+  batch_size = 34,
+  validation_data = list(validation$features, validation$labels),
+  callbacks = list(
+    callback_early_stopping(patience = 10),
+    callback_reduce_lr_on_plateau( patience = 2)
+  )
+)
+```
+
+The training is extremely fast, even on a CPU, since we only have to deal with three `Dense` layers. 
+The training was stopped after 11 epochs due to the callback functions. 
+
+
+Let's save the model:
+```{r}
+save_model_hdf5(model, "NaturalImgaesExercise_3.h5")
+```
+
+
+
+Let's take a look at the loss and accuracy curves during training:
+```{r, echo=T}
+plot(history)
+```
+
+We reach a validation accuracy of 100%!!!
+After only 11 epochs!!!
+It seems like there is no issue with overfitting, given the high accuracy and low loss of the model.
+Hence, it seems like there is no need for data augmentation in this case. We will know this for sure once we test on our test data. 
+
+
+We can now evaluate the model on the test data:
+```{r}
+results <- model %>% evaluate(test$features,test$labels)
+results
+```
+
+**99% on the test data!!!**
+
+![](https://media.giphy.com/media/15BuyagtKucHm/giphy.gif)
