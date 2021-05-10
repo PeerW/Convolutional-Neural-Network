@@ -27,4 +27,4 @@ The representations learned by the VGG16 network are used to extract features fr
 I was able to achieve a test accuracy of 99,93%!
 
 
-*Check out the code in the .rmd or the .html files.*
+*You can download the code as an .rmd or the .html file.*
